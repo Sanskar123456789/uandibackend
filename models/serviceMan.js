@@ -1,0 +1,29 @@
+const mongoose = require('mongoose');
+
+const userSchema = mongoose.Schema({
+    Name : {
+        type : String,
+        required : true
+    },
+    Email : {
+        type: String,
+        required : true,
+    },
+    Phone_no : {
+        type : Number,
+    },
+    Address : {
+        type:String,
+    },
+    Gender : {
+        type:String,
+        required : true,
+    },
+    Assigned_order : [{
+        type:mongoose.Schema.Types.ObjectId,
+        ref: 'Orders',
+    }],
+    date:{type:Date, default:Date.now},
+})
+
+exports.serviceMan = mongoose.model('serviceMan',userSchema);

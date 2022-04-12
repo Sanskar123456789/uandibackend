@@ -32,7 +32,6 @@
             data.Service.map(item=>{
                 c++;
                 let star = `
-                ${c}
                 <div class="rate">
                 <input type="radio" id="star5-${c.toString()}" name=${c.toString()} value="5" />
                 <label for="star5-${c.toString()}" title="text">5 stars</label>
@@ -88,8 +87,8 @@
                 const container = document.getElementById('container')
                 const newcard = document.createElement('div')
                 newcard.id = 'container-'+c.toString();
-                newcard.className = item._id;
-                newcard.innerHTML ="<div class='card' id="+c+" style='width: 18rem; margin:12px;'><img src="+item.Service_image+" class='card-img-top' alt='image'><div class='card-body'><h5 class='card-title'>"+item.Service_name+"</h5><p class='card-text'>" +item.Service_description+"<br>"+star +"</p>"+"<div class='input-group input-group-sm mb-3'><span class='input-group-text' id='inputGroup-sizing-sm'>FeedBack</span><input type='text' class='form-control' aria-label='Sizing example input' id="+c.toString()+c.toString()+" aria-describedby='inputGroup-sizing-sm'></div>"+"<button type='button' onclick='submitFeedBack("+c+")'  class='btn btn-primary'>Give Feedback</button>"
+                newcard.className = item.Services._id;
+                newcard.innerHTML ="<div class='card' id="+c+" style='width: 18rem; margin:12px;'><img src="+item.Services.Service_image+" class='card-img-top' alt='image'><div class='card-body'><h5 class='card-title'>"+item.Services.Service_name+"</h5><p class='card-text'>" +item.Services.Service_description+"<br>"+star +"</p>"+"<div class='input-group input-group-sm mb-3'><span class='input-group-text' id='inputGroup-sizing-sm'>FeedBack</span><input type='text' class='form-control' aria-label='Sizing example input' id="+c.toString()+c.toString()+" aria-describedby='inputGroup-sizing-sm'></div>"+"<button type='button' onclick='submitFeedBack("+c+")'  class='btn btn-primary'>Give Feedback</button>"
                 container.appendChild(newcard);
             })        
         })
@@ -114,6 +113,7 @@
                     "Feedback":feed.value,
                     "Review":rate_value
                 }
+                console.log(data);
                 const req= new XMLHttpRequest();
                 let doc = document.getElementById('container-'+c.toString());
                 let ids = doc.className;

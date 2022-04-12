@@ -5,7 +5,7 @@ require(newLocal);
 const api = process.env.url;
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-// const authjwt = require('./helpers/jwt');
+const authjwt = require('./helpers/jwt');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 //cors
@@ -33,7 +33,7 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('tiny'));
-// app.use(authjwt());
+app.use(authjwt());
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'))
 app.use(errhandler);
 

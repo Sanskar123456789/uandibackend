@@ -57,7 +57,8 @@ router.post('/newServiceman',async(req, res)=>{
         Email : req.body.Email,
         Phone_no : req.body.Phone_no,
         Address: req.body.Address,
-        Gender: req.body.Gender
+        Gender: req.body.Gender,
+        Speciality:req.body.Speciality
     })
 
     newServiceman = await newServiceman.save();
@@ -86,9 +87,11 @@ router.put('/updateServiceMan/:id',async (req, res) =>{
         req.params.id,
         {
         Name : req.body.Name,
+        Email: req.body.Email,
         Phone_no : req.body.Phone_no,
         Address: req.body.Address,
         Gender: req.body.Gender,
+        Speciality:req.body.Speciality
     },
     {new : true}
     )
@@ -99,7 +102,7 @@ router.put('/updateServiceMan/:id',async (req, res) =>{
 })
 
 router.get('/allserviceMan', async (req,res)=> {
-    let allUser = await serviceMan.find();
+    let allUser = await serviceMan.find().populate('Assigned_order Speciality');
     if(!allUser){
         res.status(404).json({message:"No Partner Found"});
     }else{
@@ -108,12 +111,21 @@ router.get('/allserviceMan', async (req,res)=> {
 })
 
 router.get('/singleserviceMan/:id', async (req,res)=> {
-    let findUser = await serviceMan.findById(req.params.id).populate('Assigned_services');
+    let findUser = await serviceMan.findById(req.params.id).populate('Assigned_order Speciality').populate({path:'Assigned_order',populate:'User'});
     if(!findUser){
         res.status(404).json({message:"Partner not found"});
     }
     else{
         res.send(findUser);
+    }
+})
+
+router.get('/RelateServiceMan/:id', async (req, res)=>{
+    const ServiceMan = await serviceMan.find({Speciality:req.params.id})
+    if(!serviceMan){
+        res.status(404).json({message:"Serviceman not found" ,status:false});
+    }else{
+        res.status(200).json({message:"Serviceman found",status:true,data:ServiceMan});
     }
 })
 

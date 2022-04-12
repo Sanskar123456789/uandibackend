@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {Orders} = require('../models/Orders');
 const {User} = require('../models/user')
+const {serviceMan} = require('../models/serviceMan')
 const {Offer} = require('../models/offer');
 const {Service} = require('../models/service');
 const multer = require('multer');
@@ -80,7 +81,7 @@ router.get('/allOrders' , async (req, res) => {
 })
 
 router.get('/OrderDetail/:id' , async (req, res) => {
-    let orders = await Orders.findById(req.params.id).populate("User Offer").populate({path:'Service',populate:'Services'});
+    let orders = await Orders.findById(req.params.id).populate("User Offer").populate({path:'Service',populate:'Services isAssignedTo'});
     if (!orders) {
         res.status(404).send("No offer available");
     }else{
@@ -533,4 +534,86 @@ router.get('/order-not-completed',async (req, res)=>{
     })
     res.send('Faulty Order deleted');
 })
+
+router.post('/assign-Task/:id',async (req, res)=>{
+
+    const upserviceman = await serviceMan.findById(req.body.ServiceManId)
+
+    if(!upserviceman){
+        res.send({message:"Unable to find serviceMan",status:false});
+        return
+    }else{
+        let assignedOrders = upserviceman.Assigned_order
+        assignedOrders.push(req.params.id)
+        await serviceMan.findByIdAndUpdate(req.body.ServiceManId,{
+            Assigned_order:assignedOrders
+        },{new: true})
+    }
+    
+    
+    
+    const Order = await Orders.findById(req.params.id).populate('User').populate({path:'Service',populate:'Services'});
+    
+    let services = Order.Service
+    let itemtoupdate = {};
+    for(let i=0; i< services.length; i++) {
+        if(services[i]._id == req.body.ServiceId){
+            itemtoupdate = services[i];
+            itemtoupdate['isAssignedTo'] = req.body.ServiceManId
+            services[i] = itemtoupdate;
+        }
+    }
+    const AssignedOrder = await Orders.findByIdAndUpdate(req.params.id,{
+        Service:services
+    },{new: true}).populate({path:'Service',populate:'isAssignedTo'})
+    let htmltext = `
+    <h2>You Have been assigned an order Please read the details and after completion click the following button<h2>
+    <p>
+    <br>Customer Name: ${Order.User.Name}<br>
+    <br>Customer Phone_no: ${Order.User.Phone_no}<br>
+    <br>Customer Scheduled Date: ${Order.Scheduled_date}<br>
+    <br>Service Details<br>
+    Name : ${itemtoupdate.Services.Service_name}<br>
+    Rate : ${itemtoupdate.Services.Service_rate}<br>
+    <p>
+    
+    After completion click on the link <br>
+    "http://localhost:3000/api/Order/set-OrderStatus-true/${AssignedOrder._id}/${req.body.ServiceManId}"
+    `
+    sendMail(upserviceman.Email,'New Order',htmltext)
+    res.send(AssignedOrder)
+
+})
+
+router.get('/set-OrderStatus-true/:id/:servimanId',async(req, res)=>{
+    const Order = await Orders.findById(req.params.id).populate({path:'Service',populate:'Services'});
+    let services = Order.Service
+    let itemtoupdate = {};
+    for(let i=0; i< services.length; i++) {
+        if(services[i].isAssignedTo == req.params.servimanId){
+            itemtoupdate = services[i];
+            itemtoupdate['iscompleted'] = true
+            services[i] = itemtoupdate;
+        }
+    }
+    const AssignedOrder = await Orders.findByIdAndUpdate(req.params.id,{
+        Service:services
+    },{new: true})
+    if(!AssignedOrder){
+        res.send({message:"Data not updated",success:false});
+    }else{
+        res.writeHead(200,{"Content-type":'text/html'});
+        fs.readFile('./orderStatus.html',null,function(err, data){ 
+        if(err) {
+            console.log(err);
+            res.write("Order Is Been completed!");
+        }
+        else{
+            res.write(data);
+        }
+        res.send();
+    })
+    }
+})
+
 module.exports = router;

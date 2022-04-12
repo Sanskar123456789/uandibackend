@@ -10,11 +10,14 @@ var _require = require('../models/Orders'),
 var _require2 = require('../models/user'),
     User = _require2.User;
 
-var _require3 = require('../models/offer'),
-    Offer = _require3.Offer;
+var _require3 = require('../models/serviceMan'),
+    serviceMan = _require3.serviceMan;
 
-var _require4 = require('../models/service'),
-    Service = _require4.Service;
+var _require4 = require('../models/offer'),
+    Offer = _require4.Offer;
+
+var _require5 = require('../models/service'),
+    Service = _require5.Service;
 
 var multer = require('multer');
 
@@ -24,8 +27,8 @@ var fs = require('fs');
 
 var nodemailer = require('nodemailer');
 
-var _require5 = require('googleapis'),
-    google = _require5.google;
+var _require6 = require('googleapis'),
+    google = _require6.google;
 
 var easyinvoice = require('easyinvoice');
 
@@ -129,7 +132,7 @@ router.get('/OrderDetail/:id', function _callee2(req, res) {
           _context2.next = 2;
           return regeneratorRuntime.awrap(Orders.findById(req.params.id).populate("User Offer").populate({
             path: 'Service',
-            populate: 'Services'
+            populate: 'Services isAssignedTo'
           }));
 
         case 2:
@@ -896,6 +899,145 @@ router.get('/order-not-completed', function _callee13(req, res) {
         case 6:
         case "end":
           return _context13.stop();
+      }
+    }
+  });
+});
+router.post('/assign-Task/:id', function _callee14(req, res) {
+  var upserviceman, assignedOrders, Order, services, itemtoupdate, i, AssignedOrder, htmltext;
+  return regeneratorRuntime.async(function _callee14$(_context14) {
+    while (1) {
+      switch (_context14.prev = _context14.next) {
+        case 0:
+          _context14.next = 2;
+          return regeneratorRuntime.awrap(serviceMan.findById(req.body.ServiceManId));
+
+        case 2:
+          upserviceman = _context14.sent;
+
+          if (upserviceman) {
+            _context14.next = 8;
+            break;
+          }
+
+          res.send({
+            message: "Unable to find serviceMan",
+            status: false
+          });
+          return _context14.abrupt("return");
+
+        case 8:
+          assignedOrders = upserviceman.Assigned_order;
+          assignedOrders.push(req.params.id);
+          _context14.next = 12;
+          return regeneratorRuntime.awrap(serviceMan.findByIdAndUpdate(req.body.ServiceManId, {
+            Assigned_order: assignedOrders
+          }, {
+            "new": true
+          }));
+
+        case 12:
+          _context14.next = 14;
+          return regeneratorRuntime.awrap(Orders.findById(req.params.id).populate('User').populate({
+            path: 'Service',
+            populate: 'Services'
+          }));
+
+        case 14:
+          Order = _context14.sent;
+          services = Order.Service;
+          itemtoupdate = {};
+
+          for (i = 0; i < services.length; i++) {
+            if (services[i]._id == req.body.ServiceId) {
+              itemtoupdate = services[i];
+              itemtoupdate['isAssignedTo'] = req.body.ServiceManId;
+              services[i] = itemtoupdate;
+            }
+          }
+
+          _context14.next = 20;
+          return regeneratorRuntime.awrap(Orders.findByIdAndUpdate(req.params.id, {
+            Service: services
+          }, {
+            "new": true
+          }).populate({
+            path: 'Service',
+            populate: 'isAssignedTo'
+          }));
+
+        case 20:
+          AssignedOrder = _context14.sent;
+          htmltext = "\n    <h2>You Have been assigned an order Please read the details and after completion click the following button<h2>\n    <p>\n    <br>Customer Name: ".concat(Order.User.Name, "<br>\n    <br>Customer Phone_no: ").concat(Order.User.Phone_no, "<br>\n    <br>Customer Scheduled Date: ").concat(Order.Scheduled_date, "<br>\n    <br>Service Details<br>\n    Name : ").concat(itemtoupdate.Services.Service_name, "<br>\n    Rate : ").concat(itemtoupdate.Services.Service_rate, "<br>\n    <p>\n    \n    After completion click on the link <br>\n    \"http://localhost:3000/api/Order/set-OrderStatus-true/").concat(AssignedOrder._id, "/").concat(req.body.ServiceManId, "\"\n    ");
+          sendMail(upserviceman.Email, 'New Order', htmltext);
+          res.send(AssignedOrder);
+
+        case 24:
+        case "end":
+          return _context14.stop();
+      }
+    }
+  });
+});
+router.get('/set-OrderStatus-true/:id/:servimanId', function _callee15(req, res) {
+  var Order, services, itemtoupdate, i, AssignedOrder;
+  return regeneratorRuntime.async(function _callee15$(_context15) {
+    while (1) {
+      switch (_context15.prev = _context15.next) {
+        case 0:
+          _context15.next = 2;
+          return regeneratorRuntime.awrap(Orders.findById(req.params.id).populate({
+            path: 'Service',
+            populate: 'Services'
+          }));
+
+        case 2:
+          Order = _context15.sent;
+          services = Order.Service;
+          itemtoupdate = {};
+
+          for (i = 0; i < services.length; i++) {
+            if (services[i].isAssignedTo == req.params.servimanId) {
+              itemtoupdate = services[i];
+              itemtoupdate['iscompleted'] = true;
+              services[i] = itemtoupdate;
+            }
+          }
+
+          _context15.next = 8;
+          return regeneratorRuntime.awrap(Orders.findByIdAndUpdate(req.params.id, {
+            Service: services
+          }, {
+            "new": true
+          }));
+
+        case 8:
+          AssignedOrder = _context15.sent;
+
+          if (!AssignedOrder) {
+            res.send({
+              message: "Data not updated",
+              success: false
+            });
+          } else {
+            res.writeHead(200, {
+              "Content-type": 'text/html'
+            });
+            fs.readFile('./orderStatus.html', null, function (err, data) {
+              if (err) {
+                console.log(err);
+                res.write("Order Is Been completed!");
+              } else {
+                res.write(data);
+              }
+
+              res.send();
+            });
+          }
+
+        case 10:
+        case "end":
+          return _context15.stop();
       }
     }
   });

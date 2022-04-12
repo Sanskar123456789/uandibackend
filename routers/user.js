@@ -252,7 +252,7 @@ router.get('/allUser', async (req,res)=> {
 })
 
 router.get('/singleUser/:id', async (req,res)=> {
-    let findUser = await User.findById(req.params.id).select('-password').populate('User_Wishlist').populate('Cart').populate({path : "Orders" , populate :'Service'});
+    let findUser = await User.findById(req.params.id).select('-password').populate('User_Wishlist').populate('Cart').populate({path : "Orders" , populate :{path:'Service',populate:'Services'}});
     if(!findUser){
         res.status(404).json({message:"User not found"});
     }

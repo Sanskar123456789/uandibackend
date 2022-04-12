@@ -25,6 +25,10 @@ var userSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Orders'
   }],
+  Speciality: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service'
+  },
   date: {
     type: Date,
     "default": Date.now

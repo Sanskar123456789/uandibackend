@@ -514,7 +514,10 @@ router.get('/singleUser/:id', function _callee10(req, res) {
           _context10.next = 2;
           return regeneratorRuntime.awrap(User.findById(req.params.id).select('-password').populate('User_Wishlist').populate('Cart').populate({
             path: "Orders",
-            populate: 'Service'
+            populate: {
+              path: 'Service',
+              populate: 'Services'
+            }
           }));
 
         case 2:

@@ -11,8 +11,9 @@ var api = process.env.url;
 
 var morgan = require('morgan');
 
-var mongoose = require('mongoose'); // const authjwt = require('./helpers/jwt');
+var mongoose = require('mongoose');
 
+var authjwt = require('./helpers/jwt');
 
 var cors = require('cors');
 
@@ -54,8 +55,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-app.use(morgan('tiny')); // app.use(authjwt());
-
+app.use(morgan('tiny'));
+app.use(authjwt());
 app.use('/public/uploads', express["static"](__dirname + '/public/uploads'));
 app.use(errhandler); //routers
 

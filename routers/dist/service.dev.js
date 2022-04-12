@@ -277,7 +277,7 @@ router.put('/newFeedBack/:id', function _callee7(req, res) {
           findService = _context7.sent;
 
           if (findService) {
-            _context7.next = 6;
+            _context7.next = 7;
             break;
           }
 
@@ -285,9 +285,10 @@ router.put('/newFeedBack/:id', function _callee7(req, res) {
             success: false,
             message: 'No Service found'
           });
+          console.log("Not Found", req.body);
           return _context7.abrupt("return");
 
-        case 6:
+        case 7:
           review = 0;
           feed = [];
           console.log(review, findService.Review);
@@ -300,7 +301,7 @@ router.put('/newFeedBack/:id', function _callee7(req, res) {
             feed.push(req.body.Feedback);
           } else feed.push(req.body.Feedback);
 
-          _context7.next = 13;
+          _context7.next = 14;
           return regeneratorRuntime.awrap(Service.findByIdAndUpdate(req.params.id, {
             Feedback: feed,
             Review: review
@@ -308,7 +309,7 @@ router.put('/newFeedBack/:id', function _callee7(req, res) {
             "new": true
           }));
 
-        case 13:
+        case 14:
           UpService = _context7.sent;
 
           if (!UpService) {
@@ -323,7 +324,7 @@ router.put('/newFeedBack/:id', function _callee7(req, res) {
             });
           }
 
-        case 15:
+        case 16:
         case "end":
           return _context7.stop();
       }

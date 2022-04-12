@@ -71,7 +71,8 @@ router.post('/newServiceman', function _callee(req, res) {
             Email: req.body.Email,
             Phone_no: req.body.Phone_no,
             Address: req.body.Address,
-            Gender: req.body.Gender
+            Gender: req.body.Gender,
+            Speciality: req.body.Speciality
           });
           _context.next = 3;
           return regeneratorRuntime.awrap(newServiceman.save());
@@ -132,9 +133,11 @@ router.put('/updateServiceMan/:id', function _callee3(req, res) {
           _context3.next = 2;
           return regeneratorRuntime.awrap(serviceMan.findByIdAndUpdate(req.params.id, {
             Name: req.body.Name,
+            Email: req.body.Email,
             Phone_no: req.body.Phone_no,
             Address: req.body.Address,
-            Gender: req.body.Gender
+            Gender: req.body.Gender,
+            Speciality: req.body.Speciality
           }, {
             "new": true
           }));
@@ -164,7 +167,7 @@ router.get('/allserviceMan', function _callee4(req, res) {
       switch (_context4.prev = _context4.next) {
         case 0:
           _context4.next = 2;
-          return regeneratorRuntime.awrap(serviceMan.find());
+          return regeneratorRuntime.awrap(serviceMan.find().populate('Assigned_order Speciality'));
 
         case 2:
           allUser = _context4.sent;
@@ -191,7 +194,10 @@ router.get('/singleserviceMan/:id', function _callee5(req, res) {
       switch (_context5.prev = _context5.next) {
         case 0:
           _context5.next = 2;
-          return regeneratorRuntime.awrap(serviceMan.findById(req.params.id).populate('Assigned_services'));
+          return regeneratorRuntime.awrap(serviceMan.findById(req.params.id).populate('Assigned_order Speciality').populate({
+            path: 'Assigned_order',
+            populate: 'User'
+          }));
 
         case 2:
           findUser = _context5.sent;
@@ -207,6 +213,40 @@ router.get('/singleserviceMan/:id', function _callee5(req, res) {
         case 4:
         case "end":
           return _context5.stop();
+      }
+    }
+  });
+});
+router.get('/RelateServiceMan/:id', function _callee6(req, res) {
+  var ServiceMan;
+  return regeneratorRuntime.async(function _callee6$(_context6) {
+    while (1) {
+      switch (_context6.prev = _context6.next) {
+        case 0:
+          _context6.next = 2;
+          return regeneratorRuntime.awrap(serviceMan.find({
+            Speciality: req.params.id
+          }));
+
+        case 2:
+          ServiceMan = _context6.sent;
+
+          if (!serviceMan) {
+            res.status(404).json({
+              message: "Serviceman not found",
+              status: false
+            });
+          } else {
+            res.status(200).json({
+              message: "Serviceman found",
+              status: true,
+              data: ServiceMan
+            });
+          }
+
+        case 4:
+        case "end":
+          return _context6.stop();
       }
     }
   });

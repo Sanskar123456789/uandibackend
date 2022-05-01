@@ -616,4 +616,34 @@ router.get('/set-OrderStatus-true/:id/:servimanId',async(req, res)=>{
     }
 })
 
+router.put('/reschedule-Date/:id',async (req, res)=>{
+    const data = await Orders.findByIdAndUpdate(req.params.id,{
+        Scheduled_date:req.body.Scheduled_date
+    },
+    {new: true}).populate('User')
+
+    if(data){
+        let date = new Date(data.Scheduled_date)
+        sendMail(data.User.Email,"UandI : Your order has been Rescheduled","<h1>New date is " + date.getDate()+"/"+date.getMonth()+"/"+date.getFullYear()+"</h1><h5>for any query please contact</h5>")
+        sendMail(process.env.AdminId,`UandI :An order of ${data.User.Name} has been Rescheduled` ,"<h1>New Date is "+ date.getDate()+"/"+date.getMonth()+"/"+date.getFullYear()+"</h1>")
+        res.send({data:data,status:true})
+    }else{
+        res.send({status:false})
+    }
+})
+
+router.put('/reschedule-Date-admin/:id',async (req, res)=>{
+    const data = await Orders.findByIdAndUpdate(req.params.id,{
+        Scheduled_date:req.body.Scheduled_date
+    },
+    {new: true})
+
+    if(data){
+        sendMail(data.User.Email,"UandI : Your order has been Rescheduled","<h1>New date is " + date.getDate()+"/"+date.getMonth()+"/"+date.getFullYear()+"</h1><h5>for any query please contact</h5>")
+        sendMail(process.env.AdminId,`UandI :An order of ${data.User.Name} has been Rescheduled` ,"<h1>New Date is "+ date.getDate()+"/"+date.getMonth()+"/"+date.getFullYear()+"</h1>")
+        res.send({data:data,status:true})
+    }else{
+        res.send({status:false})
+    }
+})
 module.exports = router;

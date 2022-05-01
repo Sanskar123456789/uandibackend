@@ -24,6 +24,7 @@ function authjwt(){
             {url: /\/api\/Order\/newOrder(.*)/ , method: ['POST','OPTIONS']},
             {url: /\/api\/Order\/cancel-order(.*)/ , method: ['POST','OPTIONS']},
             {url: /\/api\/Order\/onlinePayment(.*)/ , method: ['POST','OPTIONS']},
+            {url: /\/api\/Order\/reschedule-Date(.*)/,method:["PUT",'OPTIONS']},
             {url: /\/api\/Order\/is-order-complete(.*)/ , method: ['POST','OPTIONS']},
             {url: /\/api\/user\/addwishlist(.*)/ , method: ['PUT','OPTIONS']},
             {url: /\/api\/user\/removewishlist(.*)/ , method: ['PUT','OPTIONS']},

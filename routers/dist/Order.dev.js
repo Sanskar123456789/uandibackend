@@ -153,7 +153,7 @@ router.get('/OrderDetail/:id', function _callee2(req, res) {
 }); // params = user _id
 
 router.post('/newOrder/:id', function _callee3(req, res) {
-  var user, offer_applied, servicesid, _i, newOrder, dis, max, offer, orders, ServiceList, total, _i2, _updateOrder, _updateOrder2, userOrderList, LoyalityPoints, update, products, i, date, ordersno, Invoicedata;
+  var user, offer_applied, servicesid, _i, newOrder, dis, max, offer, orders, ServiceList, total, _i2, _updateOrder, _updateOrder2, userOrderList, LoyalityPoints, update, products, i, _date, ordersno, Invoicedata;
 
   return regeneratorRuntime.async(function _callee3$(_context3) {
     while (1) {
@@ -348,7 +348,7 @@ router.post('/newOrder/:id', function _callee3(req, res) {
             htmlString += "<li>".concat(orders.Service[i].Services.Service_name, " <br> price = ").concat(orders.Service[i].Services.Service_rate, "</li>");
           }
 
-          date = new Date();
+          _date = new Date();
           _context3.next = 62;
           return regeneratorRuntime.awrap(Orders.collection.countDocuments());
 
@@ -382,7 +382,7 @@ router.post('/newOrder/:id', function _callee3(req, res) {
             "information": {
               // Invoice number
               "number": ordersno,
-              "date": "".concat(date.getDate(), "/").concat(date.getMonth(), "/").concat(date.getFullYear()),
+              "date": "".concat(_date.getDate(), "/").concat(_date.getMonth(), "/").concat(_date.getFullYear()),
               "due-date": "N/A"
             },
             "products": products,
@@ -1038,6 +1038,80 @@ router.get('/set-OrderStatus-true/:id/:servimanId', function _callee15(req, res)
         case 10:
         case "end":
           return _context15.stop();
+      }
+    }
+  });
+});
+router.put('/reschedule-Date/:id', function _callee16(req, res) {
+  var data, _date2;
+
+  return regeneratorRuntime.async(function _callee16$(_context16) {
+    while (1) {
+      switch (_context16.prev = _context16.next) {
+        case 0:
+          _context16.next = 2;
+          return regeneratorRuntime.awrap(Orders.findByIdAndUpdate(req.params.id, {
+            Scheduled_date: req.body.Scheduled_date
+          }, {
+            "new": true
+          }).populate('User'));
+
+        case 2:
+          data = _context16.sent;
+
+          if (data) {
+            _date2 = new Date(data.Scheduled_date);
+            sendMail(data.User.Email, "UandI : Your order has been Rescheduled", "<h1>New date is " + _date2.getDate() + "/" + _date2.getMonth() + "/" + _date2.getFullYear() + "</h1><h5>for any query please contact</h5>");
+            sendMail(process.env.AdminId, "UandI :An order of ".concat(data.User.Name, " has been Rescheduled"), "<h1>New Date is " + _date2.getDate() + "/" + _date2.getMonth() + "/" + _date2.getFullYear() + "</h1>");
+            res.send({
+              data: data,
+              status: true
+            });
+          } else {
+            res.send({
+              status: false
+            });
+          }
+
+        case 4:
+        case "end":
+          return _context16.stop();
+      }
+    }
+  });
+});
+router.put('/reschedule-Date-admin/:id', function _callee17(req, res) {
+  var data;
+  return regeneratorRuntime.async(function _callee17$(_context17) {
+    while (1) {
+      switch (_context17.prev = _context17.next) {
+        case 0:
+          _context17.next = 2;
+          return regeneratorRuntime.awrap(Orders.findByIdAndUpdate(req.params.id, {
+            Scheduled_date: req.body.Scheduled_date
+          }, {
+            "new": true
+          }));
+
+        case 2:
+          data = _context17.sent;
+
+          if (data) {
+            sendMail(data.User.Email, "UandI : Your order has been Rescheduled", "<h1>New date is " + date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear() + "</h1><h5>for any query please contact</h5>");
+            sendMail(process.env.AdminId, "UandI :An order of ".concat(data.User.Name, " has been Rescheduled"), "<h1>New Date is " + date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear() + "</h1>");
+            res.send({
+              data: data,
+              status: true
+            });
+          } else {
+            res.send({
+              status: false
+            });
+          }
+
+        case 4:
+        case "end":
+          return _context17.stop();
       }
     }
   });

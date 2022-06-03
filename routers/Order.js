@@ -13,6 +13,10 @@ const {google} = require('googleapis');
 var easyinvoice = require('easyinvoice');
 const Oauth2 = google.auth.OAuth2;
 const Oauth2_client = new Oauth2(process.env.CLIENT_ID,process.env.CLIENT_SECRET);
+const monthNames = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+const d = new Date();
 
 Oauth2_client.setCredentials({refresh_token:process.env.REFRESH_TOKEN});
 
@@ -136,21 +140,26 @@ router.post('/newOrder/:id', async (req, res)=>{
     }
 
     if(max){
-        if(total >= max){
+        if(total >= max*100){
             dis = dis/100;
             total = total - (total * dis);
+            console.log("Offer dis", total);
         }
     }
-
+    
+    let coinUsed = false;
     if(req.body.coins){
-        total -= user.Loyality_points;
+        coinUsed = true;
+        total -= (user.Loyality_points*100);
+        console.log("coin dis", total);
     }
+    console.log("current amount",total)
 
     // order is generated
     if(offer_applied == ''){
         const updateOrder =  await Orders.findByIdAndUpdate(newOrder._id,
             {
-                total_amount:total*100,
+                total_amount:total,
             },
             {new: true});    
         if(!updateOrder){
@@ -159,7 +168,7 @@ router.post('/newOrder/:id', async (req, res)=>{
     }else{
         const updateOrder =  await Orders.findByIdAndUpdate(newOrder._id,
             {
-                total_amount:total*100,
+                total_amount:total,
                 Offer:offer_applied
             },
             {new: true});    
@@ -176,40 +185,57 @@ router.post('/newOrder/:id', async (req, res)=>{
         userOrderList=user.Orders;
         userOrderList[user.Orders.length] = newOrder._id;
     }
-    const LoyalityPoints= Math.floor(total/100+user.Loyality_points);
+
+    let Loyality_points
+    if(coinUsed){
+        Loyality_points = 0;
+    }else{
+        Loyality_points= Math.floor(total/10000+user.Loyality_points);
+    }
     // User data update
-    let update =await User.findByIdAndUpdate(req.params.id,{Loyality_points:LoyalityPoints,Orders : userOrderList},{new:true}).select('-password')
+    let update =await User.findByIdAndUpdate(req.params.id,{Loyality_points:Loyality_points,Orders : userOrderList},{new:true}).select('-password')
 
     if(!update){
         res.send({message:"Unable to add to User Order list",status:false})
     }else{
         const products = [];
         htmlString = '';
-        for(var i=0; i<orders.Service.length; i++){
-            products.push({
-                "description": orders.Service[i].Services.Service_name,
-                "price": orders.Service[i].Services.Service_rate,
-                "tax-rate": 0,
-                "quantity": 1,
-            }
-            )
+        for(var i=0; i<orders.Service.length; i++)
+        {
+            if(dis>0){
+                products.push({
+                    "description": orders.Service[i].Services.Service_name,
+                    "price": orders.Service[i].Services.Service_rate/100*(1-dis),
+                    "tax-rate": 0,
+                    "quantity": 1,
+                })
 
             htmlString +=`<li>${orders.Service[i].Services.Service_name} <br> price = ${ orders.Service[i].Services.Service_rate}</li>`
+            }
+            else{
+                products.push({
+                    "description": orders.Service[i].Services.Service_name,
+                    "price": orders.Service[i].Services.Service_rate/100,
+                    "tax-rate": 0,
+                    "quantity": 1,
+                })
+
+            htmlString +=`<li>${orders.Service[i].Services.Service_name} <br> price = ${ orders.Service[i].Services.Service_rate}</li>`
+            }
+            console.log(products)
+            console.log(dis)
         }
         const date = new Date();
         const ordersno = await Orders.collection.countDocuments()
         const Invoicedata = {
             "images": {
                 // The logo on top of your invoice
-                "logo": "https://public.easyinvoice.cloud/img/logo_en_original.png",
-                // The invoice background
-                "background": "https://public.easyinvoice.cloud/img/watermark-draft.jpg"
+                "logo": "https://res.cloudinary.com/dsv4yzr1h/image/upload/v1653809826/logo_q0wqg0.png",
             },
-    
             "sender": {
                 "company": "UandI",
-                "address": "Sample Street 123",  // ask
-                "zip": "1234 AB", 
+                "address": "Near Post Office, Vikas Nagar, Lucknow",  // ask
+                "zip": "226022", 
                 "city": "Lucknow",
                 "country": "India"
                 //"custom1": "custom value 1",
@@ -224,10 +250,11 @@ router.post('/newOrder/:id', async (req, res)=>{
                 // "country": "Clientcountry"
                 // "custom1": "custom value 1",
             },
+            
             "information": {
                 // Invoice number
                 "number": ordersno, 
-                "date": `${date.getDate()}/${date.getMonth()}/${date.getFullYear()}`,
+                "date": `${date.getDate()}/${monthNames[d.getMonth()]}/${date.getFullYear()}`,
                 "due-date": "N/A"
             },
             "products": products,
@@ -259,12 +286,89 @@ router.post('/newOrder/:id', async (req, res)=>{
             `
             sendMail(process.env.AdminId,"New Order",AdmintextmsgHTML,result.pdf)
             sendMail(update.Email,"New Order",ClienttextmsgHTML,result.pdf)
-            res.send({message:"Order is successful",status:true})
+            
         }).catch(err=>{
             res.send({message:"Order is successful there is problem coming in sending you invoice plese contact us for invoice",status:true})
         });
+        res.send({message:"Order is successful",status:true})
     }
 })
+
+router.post('/onlinePayment/:id', async (req, res)=>{
+    const user = await User.findById(req.params.id).select('Name Phone_no Email Orders Loyality_points');
+    if(user) {
+        
+        let dis=0;
+        let max;
+        const offer = await Offer.find({'Offer_code':req.body.Offer_code});
+        if(offer[0]){
+            dis = offer[0].Offer_percentage;
+            max = offer[0].Offer_onBasisOfTotalAmount;
+        }
+        var total = 0;
+        for(let i = 0; i < req.body.Service.length ; i++) {
+            const orders = await Service.findById(req.body.Service[i]._id);
+            total = total+orders.Service_rate;
+        }        
+        if(total >= max*100){
+            dis = dis/100;
+            total = total - (total * dis);
+        }
+
+        let coinUsed = false;
+        if(req.body.coins){
+            coinUsed = true;
+            total -= (user.Loyality_points*100);
+            console.log(total,user);
+        }
+        const ordersno = await Orders.collection.countDocuments()
+        total =Math.floor(total);
+        instance.orders.create({
+            amount: total,
+            currency: "INR",
+            receipt: `receipt#${ordersno}`,
+        },async function(err,order){
+            if(err) console.log(err)
+            else{
+                // saving order
+                let servicesid = [];
+                for(let i=0; i<req.body.Service.length; i++){
+                servicesid.push({Services:req.body.Service[i]})
+                }
+                let newOrder = new Orders({
+                    User : req.params.id,
+                    Service : servicesid,
+                    RazorpayOrder_id:order.id,
+                    total_amount:total,
+                    Scheduled_date:req.body.Scheduled_date
+                })
+                newOrder = await newOrder.save();
+
+                let userOrderList=[];
+                if(user.Orders.length==0){
+                    userOrderList[0] = newOrder._id;
+                }else{
+                    userOrderList=user.Orders;
+                    userOrderList[user.Orders.length] = newOrder._id;
+                }
+                let Loyality_points
+                if(coinUsed){
+                    Loyality_points = 0;
+                }else{
+                    Loyality_points= Math.floor(total/10000+user.Loyality_points);
+                }
+                let update =await User.findByIdAndUpdate(req.params.id,{Orders : userOrderList,Loyality_points:Loyality_points},{new:true}).select('-password')
+
+                if(!update){
+                    res.send({message:"Unable to add to User Order list",status:false})
+                }else{
+                    res.status(200).send({"User":update,"Order":order});
+                }
+            }
+        })
+    }
+})
+
 // params = Order _id
 router.put('/updateOrder/:id', async (req,res) => {
     const Order = await Orders.findById(req.params.id);
@@ -294,72 +398,6 @@ router.put('/updateOrder/:id', async (req,res) => {
     res.send(updateOrder);
 })
 
-router.post('/onlinePayment/:id', async (req, res)=>{
-    const user = await User.findById(req.params.id).select('Name Phone_no Email Orders Loyality_points');
-    if(user) {
-        
-        let dis=0;
-        let max;
-        const offer = await Offer.find({'Offer_code':req.body.Offer_code});
-        if(offer[0]){
-            dis = offer[0].Offer_percentage;
-            max = offer[0].Offer_onBasisOfTotalAmount;
-        }
-        var total = 0;
-        for(let i = 0; i < req.body.Service.length ; i++) {
-            const orders = await Service.findById(req.body.Service[i]._id);
-            total = total+orders.Service_rate;
-        }        
-        if(total >= max){
-            dis = dis/100;
-            total = total - (total * dis);
-        }
-        if(req.body.coins){
-            total =total- user.Loyality_points;
-        }
-        const ordersno = await Orders.collection.countDocuments()
-        total =Math.floor(total);
-        instance.orders.create({
-            amount: total*100,
-            currency: "INR",
-            receipt: `receipt#${ordersno}`,
-        },async function(err,order){
-            if(err) console.log(err)
-            else{
-                // saving order
-                let servicesid = [];
-                for(let i=0; i<req.body.Service.length; i++){
-                servicesid.push({Services:req.body.Service[i]})
-                }
-                let newOrder = new Orders({
-                    User : req.params.id,
-                    Service : servicesid,
-                    RazorpayOrder_id:order.id,
-                    total_amount:total*100,
-                    Scheduled_date:req.body.Scheduled_date
-                })
-                newOrder = await newOrder.save();
-
-                let userOrderList=[];
-                if(user.Orders.length==0){
-                    userOrderList[0] = newOrder._id;
-                }else{
-                    userOrderList=user.Orders;
-                    userOrderList[user.Orders.length] = newOrder._id;
-                }
-                
-                let update =await User.findByIdAndUpdate(req.params.id,{Orders : userOrderList},{new:true}).select('-password')
-
-                if(!update){
-                    res.send({message:"Unable to add to User Order list",status:false})
-                }else{
-                    res.status(200).send({"User":update,"Order":order});
-                }
-            }
-        })
-    }
-})
-
 router.post('/is-order-complete',uploadOptions.single('razorpay_payment_id'),async (req, res)=>{
     try{
         instance.payments.fetch(req.body.razorpay_payment_id).then(async (check)=>{
@@ -371,6 +409,7 @@ router.post('/is-order-complete',uploadOptions.single('razorpay_payment_id'),asy
                 },
                 {new: true}
             ).populate("User").populate({path:'Service',populate:'Services'});
+
             updateUser = await User.findByIdAndUpdate(updateOrder.User._id, {Loyality_points:Math.floor((updateOrder.total_amount/10000)+updateOrder.User.Loyality_points)},{new: true})
             try{
                 res.writeHead(200,{"Content-type":'text/html'});
@@ -385,31 +424,38 @@ router.post('/is-order-complete',uploadOptions.single('razorpay_payment_id'),asy
 
                     const products = [];
                     htmlString = '';
-                    for(var i=0; i<updateOrder.Service.length; i++){
-                        products.push({
-                            "description": updateOrder.Service[i].Services.Service_name,
-                            "price": updateOrder.Service[i].Services.Service_rate,
-                            "tax-rate": 0,
-                            "quantity": 1,
+                    for(var i=0; i<updateOrder.Service.length; i++)
+                    {
+                        if(dis>0){
+                            products.push({
+                                "description": updateOrder.Service[i].Services.Service_name,
+                                "price": updateOrder.Service[i].Services.Service_rate/100*(1-dis),
+                                "tax-rate": 0,
+                                "quantity": 1,
+                            })
+                        htmlString +=`<li>${updateOrder.Service[i].Services.Service_name} <br> price = ${ updateOrder.Service[i].Services.Service_rate}</li>`
                         }
-                        )
-
+                        else{
+                            products.push({
+                                "description": updateOrder.Service[i].Services.Service_name,
+                                "price": updateOrder.Service[i].Services.Service_rate/100,
+                                "tax-rate": 0,
+                                "quantity": 1,
+                            })
                         htmlString +=`<li>${updateOrder.Service[i].Services.Service_name} <br> price = ${ updateOrder.Service[i].Services.Service_rate}</li>`
                     }
+                }
                     const date = new Date();
                     const ordersno = await Orders.collection.countDocuments()
                     const Invoicedata = {
                         "images": {
                             // The logo on top of your invoice
-                            "logo": "https://public.easyinvoice.cloud/img/logo_en_original.png",
-                            // The invoice background
-                            "background": "https://public.easyinvoice.cloud/img/watermark-draft.jpg"
+                            "logo": "https://res.cloudinary.com/dsv4yzr1h/image/upload/v1653809826/logo_q0wqg0.png",
                         },
-                
                         "sender": {
                             "company": "UandI",
-                            "address": "Sample Street 123",  // ask
-                            "zip": "1234 AB", 
+                            "address": "Near Post Office, Vikas Nagar, Lucknow",  // ask
+                            "zip": "226022", 
                             "city": "Lucknow",
                             "country": "India"
                             //"custom1": "custom value 1",
@@ -427,7 +473,7 @@ router.post('/is-order-complete',uploadOptions.single('razorpay_payment_id'),asy
                         "information": {
                             // Invoice number
                             "number": ordersno, 
-                            "date": `${date.getDate()}/${date.getMonth()}/${date.getFullYear()}`,
+                            "date": `${date.getDate()}/${monthNames[d.getMonth()]}/${date.getFullYear()}`,
                             "due-date": "N/A"
                         },
                         "products": products,
@@ -467,7 +513,7 @@ router.post('/is-order-complete',uploadOptions.single('razorpay_payment_id'),asy
                         console.log(err);
                     });
                     
-                })
+                    })
             }catch(err){console.log(err);}
         })
     }
@@ -566,15 +612,17 @@ router.post('/assign-Task/:id',async (req, res)=>{
     const AssignedOrder = await Orders.findByIdAndUpdate(req.params.id,{
         Service:services
     },{new: true}).populate({path:'Service',populate:'isAssignedTo'})
+    var a = `${date.getDate()}/${monthNames[d.getMonth()]}/${date.getFullYear()}`
     let htmltext = `
-    <h2>You Have been assigned an order Please read the details and after completion click the following button<h2>
+    <h2>You Have been assigned an order. Please read the details and after completion click on the following link<h2>
     <p>
-    <br>Customer Name: ${Order.User.Name}<br>
-    <br>Customer Phone_no: ${Order.User.Phone_no}<br>
-    <br>Customer Scheduled Date: ${Order.Scheduled_date}<br>
-    <br>Service Details<br>
+    <br>Customer Name: ${Order.User.Name}
+    <br>Customer Phone Number: ${Order.User.Phone_no}
+    <br>Customer Scheduled Date: ${a}
+    <br>Customer Address: ${Order.User.Address}<br>
+    <br>Service Details: <br>
     Name : ${itemtoupdate.Services.Service_name}<br>
-    Rate : ${itemtoupdate.Services.Service_rate}<br>
+    Rate : ${Order.total_amount/100} Rupees<br>
     <p>
     
     After completion click on the link <br>

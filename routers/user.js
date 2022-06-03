@@ -424,9 +424,9 @@ router.post('/mobileOtp', async(req, res)=>{
             {new:true}
         )
         if(!newOtp){
-            res.send({msg:"Otp has not been created. pls try again",success:false});
+            res.send({msg:"OTP has not been created. pls try again",success:false});
         }else{
-            res.send({msg:"Opt has been sended to your Phone number pls check.",success:true});
+            res.send({msg:"OTP has been sended to your Phone number pls check.",success:true});
         }
     }else{
         let newOtp = new Otp({
@@ -437,7 +437,7 @@ router.post('/mobileOtp', async(req, res)=>{
         if(!newOtp){
             res.status(400).send({msg:"Otp has not been created. pls try again",success:false});
         }else{
-            res.send({msg:"Opt has been sended to your Phone number pls check.",success:true});
+            res.send({msg:"OPT has been sended to your Phone number pls check.",success:true});
         }
     }
 })

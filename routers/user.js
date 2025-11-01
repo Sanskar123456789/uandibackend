@@ -117,6 +117,8 @@ router.post('/otp', async(req, res)=>{
         )
         if(!newOtp){
             res.send({msg:"Otp has not been created. pls try again",success:false});
+        }else{
+            res.send({msg:"Otp Has been created.",success:true});
         }
     }else{
         let newOtp = new Otp({

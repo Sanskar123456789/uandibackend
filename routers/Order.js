@@ -425,26 +425,15 @@ router.post('/is-order-complete',uploadOptions.single('razorpay_payment_id'),asy
                     const products = [];
                     htmlString = '';
                     for(var i=0; i<updateOrder.Service.length; i++)
-                    {
-                        if(dis>0){
-                            products.push({
-                                "description": updateOrder.Service[i].Services.Service_name,
-                                "price": updateOrder.Service[i].Services.Service_rate/100*(1-dis),
-                                "tax-rate": 0,
-                                "quantity": 1,
-                            })
-                        htmlString +=`<li>${updateOrder.Service[i].Services.Service_name} <br> price = ${ updateOrder.Service[i].Services.Service_rate}</li>`
-                        }
-                        else{
-                            products.push({
-                                "description": updateOrder.Service[i].Services.Service_name,
-                                "price": updateOrder.Service[i].Services.Service_rate/100,
-                                "tax-rate": 0,
-                                "quantity": 1,
-                            })
+                    {    
+                        products.push({
+                            "description": updateOrder.Service[i].Services.Service_name,
+                            "price": updateOrder.Service[i].Services.Service_rate/100,
+                            "tax-rate": 0,
+                            "quantity": 1,
+                        })
                         htmlString +=`<li>${updateOrder.Service[i].Services.Service_name} <br> price = ${ updateOrder.Service[i].Services.Service_rate}</li>`
                     }
-                }
                     const date = new Date();
                     const ordersno = await Orders.collection.countDocuments()
                     const Invoicedata = {
